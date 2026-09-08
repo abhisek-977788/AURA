@@ -25,8 +25,12 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Self
 
-import aioboto3
-from botocore.config import Config
+try:
+    import aioboto3
+    from botocore.config import Config
+except ImportError:
+    aioboto3 = None
+    Config = None
 
 from packages.common.config import get_settings
 from packages.common.logging import get_logger
