@@ -23,6 +23,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.database import CaseModel, JobModel, get_db
@@ -52,7 +53,7 @@ INGEST_BUFFER_DIR.mkdir(parents=True, exist_ok=True)
 
 async def _process_upload(
     file: UploadFile,
-    case: CaseModel,
+    case_id: str,
     source_type: SourceType,
     db: AsyncSession,
     user: TokenData,
@@ -60,6 +61,16 @@ async def _process_upload(
     allowed_mimes: set[str],
 ) -> dict:
     settings = get_settings()
+
+    # Ensure case exists or create default
+    stmt = select(CaseModel).where(CaseModel.id == case_id)
+    res = await db.execute(stmt)
+    case = res.scalar_one_or_none()
+    if not case:
+        case = CaseModel(id=case_id, title=f"Case {case_id[:8]}", description="Intake case", created_by=user.subject)
+        db.add(case)
+        await db.commit()
+        await db.refresh(case)
 
     # 1. Read bytes and check size
     content = await file.read()
@@ -176,11 +187,10 @@ async def upload_photo(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     user: TokenData = Depends(get_current_user),
-    case: CaseModel = Depends(get_case_or_404),
 ):
     return await _process_upload(
         file=file,
-        case=case,
+        case_id=case_id,
         source_type=SourceType.PHOTO,
         db=db,
         user=user,
@@ -195,11 +205,10 @@ async def upload_audio(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     user: TokenData = Depends(get_current_user),
-    case: CaseModel = Depends(get_case_or_404),
 ):
     return await _process_upload(
         file=file,
-        case=case,
+        case_id=case_id,
         source_type=SourceType.RECORDED_AUDIO,
         db=db,
         user=user,
@@ -214,11 +223,10 @@ async def upload_video(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     user: TokenData = Depends(get_current_user),
-    case: CaseModel = Depends(get_case_or_404),
 ):
     return await _process_upload(
         file=file,
-        case=case,
+        case_id=case_id,
         source_type=SourceType.RECORDED_VIDEO,
         db=db,
         user=user,

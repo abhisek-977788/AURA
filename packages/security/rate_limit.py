@@ -24,18 +24,28 @@ class RateLimiter:
         self.redis_url = redis_url or get_settings().REDIS_URL
         self._redis: aioredis.Redis | None = None
         self._memory_cache: dict[str, list[float]] = {}
+        self._last_redis_check: float = 0.0
+        self._redis_available: bool = True
 
     async def _get_redis(self) -> aioredis.Redis | None:
+        now = time.time()
+        if not self._redis_available and (now - self._last_redis_check < 60.0):
+            return None
+
         if self._redis is None:
+            self._last_redis_check = now
             try:
-                self._redis = aioredis.from_url(
+                client = aioredis.from_url(
                     self.redis_url,
                     encoding="utf-8",
                     decode_responses=True,
-                    socket_connect_timeout=2.0,
+                    socket_connect_timeout=0.3,
                 )
-                await self._redis.ping()
+                await client.ping()
+                self._redis = client
+                self._redis_available = True
             except Exception as err:
+                self._redis_available = False
                 logger.warning("Redis unavailable for rate limiting, falling back to in-memory limiter", error=str(err))
                 self._redis = None
         return self._redis

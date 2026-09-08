@@ -78,3 +78,7 @@ minio_data/
 *.p12
 secrets/
 .secrets/
+
+# Local DBs
+*.db
+*.sqlite

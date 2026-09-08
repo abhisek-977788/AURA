@@ -17,24 +17,34 @@ from packages.schemas.media_event import MediaEvent
 logger = get_logger("api.redis")
 
 _redis_client: aioredis.Redis | None = None
+_last_redis_check: float = 0.0
+_redis_available: bool = True
 _in_memory_cache: dict[str, str] = {}
 _in_memory_streams: dict[str, list[dict[str, Any]]] = {}
 
 
 async def get_redis() -> aioredis.Redis | None:
-    global _redis_client
+    global _redis_client, _last_redis_check, _redis_available
+    import time
+    now = time.time()
+    if not _redis_available and (now - _last_redis_check < 60.0):
+        return None
+
     if _redis_client is None:
+        _last_redis_check = now
         settings = get_settings()
         try:
             client = aioredis.from_url(
                 settings.REDIS_URL,
                 encoding="utf-8",
                 decode_responses=True,
-                socket_connect_timeout=1.0,
+                socket_connect_timeout=0.3,
             )
             await client.ping()
             _redis_client = client
+            _redis_available = True
         except Exception:
+            _redis_available = False
             _redis_client = None
     return _redis_client
 
