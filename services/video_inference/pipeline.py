@@ -19,9 +19,10 @@ from packages.schemas.analysis_result import (
     ModalityType,
 )
 from packages.schemas.media_event import MediaEvent
-from services.video-inference.features.blink import BlinkAnalyzer
-from services.video-inference.models.mesonet_adapter import MesoNetAdapter
-from services.video-inference.models.fft_and_boundary import FFTClassifier, FaceBoundaryDetector
+from services.video_inference.features.blink import BlinkAnalyzer
+from services.video_inference.models.mesonet_adapter import MesoNetAdapter
+from services.video_inference.models.fft_and_boundary import FFTClassifier, FaceBoundaryDetector
+from services.video_inference.models.xception_adapter import XceptionAdapter
 
 logger = get_logger("video.pipeline")
 
@@ -29,6 +30,7 @@ logger = get_logger("video.pipeline")
 class VideoInferencePipeline:
     def __init__(self) -> None:
         self.mesonet = MesoNetAdapter()
+        self.xception = XceptionAdapter("d:/AURA/models/video/faceforensics_xception.pt")
         self.fft_model = FFTClassifier()
         self.boundary_detector = FaceBoundaryDetector()
         self.blink_analyzer = BlinkAnalyzer()
@@ -53,10 +55,11 @@ class VideoInferencePipeline:
 
         # 1. Run model predictors
         meso_res = await self.mesonet.predict(frames)
+        xception_res = await self.xception.predict(frames)
         fft_res = await self.fft_model.predict(frames)
         boundary_res = await self.boundary_detector.predict(frames)
 
-        models = [meso_res, fft_res, boundary_res]
+        models = [meso_res, xception_res, fft_res, boundary_res]
         valid_scores = [m.synthetic_score for m in models if m.confidence > 0.3]
         ensemble_score = float(np.mean(valid_scores)) if valid_scores else 0.5
         ensemble_conf = float(np.mean([m.confidence for m in models]))
