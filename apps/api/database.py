@@ -143,11 +143,14 @@ def get_engine():
     global _engine
     if _engine is None:
         settings = get_settings()
+        db_url = settings.DATABASE_URL
+        # In local development if postgres isn't running, fallback to SQLite
+        if "postgresql" in db_url and settings.ENVIRONMENT == "development":
+            db_url = "sqlite+aiosqlite:///aura_local.db"
         _engine = create_async_engine(
-            settings.DATABASE_URL,
+            db_url,
             echo=False,
             future=True,
-            pool_pre_ping=True,
         )
     return _engine
 

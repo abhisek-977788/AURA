@@ -131,6 +131,18 @@ def create_app() -> FastAPI:
     app.include_router(evidence.router)
     app.include_router(live.router)
 
+    from pathlib import Path
+    from fastapi.responses import HTMLResponse
+
+    portal_file = Path(__file__).parent / "static" / "portal.html"
+
+    @app.get("/portal", response_class=HTMLResponse, tags=["Web Portal"])
+    @app.get("/", response_class=HTMLResponse, tags=["Web Portal"])
+    async def serve_portal():
+        if portal_file.exists():
+            return HTMLResponse(content=portal_file.read_text(encoding="utf-8"))
+        return HTMLResponse(content="<h1>AURA Forensics Portal</h1><p>Visit <a href='/docs'>/docs</a> for API</p>")
+
     return app
 
 

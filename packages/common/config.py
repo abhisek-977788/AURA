@@ -94,6 +94,7 @@ class AuraSettings(BaseSettings):
     # Rate limiting
     # -------------------------------------------------------------------------
     RATE_LIMIT_PER_MINUTE: int = 60
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:8000,*"
 
 
 @lru_cache(maxsize=1)
