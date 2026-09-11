@@ -1,0 +1,4 @@
+model_name,accuracy,precision,recall,f1_score,roc_auc
+Audio_RawNet2_CNN,0.9231,0.9231,1.0,0.96,0.875
+Image_EfficientNetB0,0.752,0.748,0.76,0.754,0.8422
+Video_EfficientNetB0,1.0,1.0,1.0,1.0,1.0
