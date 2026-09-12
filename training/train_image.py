@@ -46,6 +46,9 @@ def train_image_pipeline(
     learning_rate: float = 1e-4,
     sample_limit: int = None,
     device_name: str = None,
+    resume: bool = False,
+    start_epoch: int = 1,
+    best_val_loss_init: float = None,
 ):
     print("=" * 70)
     print("      AURA — IMAGE DEEPFAKE DETECTION TRAINING PIPELINE       ")
@@ -67,19 +70,32 @@ def train_image_pipeline(
     print("\n[Step 2/5] Initializing EfficientNet-B0 Transfer Learning Architecture...")
     model = build_image_model(device=device)
 
+    # Resume from saved best checkpoint if requested
+    if resume and CHECKPOINT_PATH.exists():
+        print(f"[Resume] Loading weights from: {CHECKPOINT_PATH}")
+        model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location=device, weights_only=True))
+        print(f"[Resume] Continuing from epoch {start_epoch} -> {epochs}")
+    elif resume:
+        print(f"[Resume] WARNING: No checkpoint at {CHECKPOINT_PATH}, starting fresh.")
+
     criterion = nn.BCEWithLogitsLoss()
     optimizer = AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-2)
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
+    # Fast-forward scheduler state to match start_epoch
+    for _ in range(start_epoch - 1):
+        scheduler.step()
     early_stopper = EarlyStopping(patience=5)
 
     train_loss_history = []
     val_loss_history = []
     val_acc_history = []
-    best_val_loss = float("inf")
+    best_val_loss = best_val_loss_init if best_val_loss_init is not None else float("inf")
+    if best_val_loss_init is not None:
+        print(f"[Resume] Restored best_val_loss = {best_val_loss:.6f}")
 
     # 3. Training Loop
-    print(f"\n[Step 3/5] Starting Training for {epochs} Epochs...")
-    for epoch in range(1, epochs + 1):
+    print(f"\n[Step 3/5] Starting Training from Epoch {start_epoch} to {epochs}...")
+    for epoch in range(start_epoch, epochs + 1):
         model.train()
         running_loss = 0.0
         pbar = tqdm(train_loader, desc=f"Epoch {epoch:02d}/{epochs:02d} [Train]")
@@ -209,6 +225,9 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate (default: 0.0001)")
     parser.add_argument("--sample-limit", type=int, default=None, help="Optional sample limit for quick smoke testing")
     parser.add_argument("--device", type=str, default=None, help="Device to use ('cuda' or 'cpu')")
+    parser.add_argument("--resume", action="store_true", help="Resume training from saved checkpoint")
+    parser.add_argument("--start-epoch", type=int, default=1, help="Epoch to resume from (default: 1)")
+    parser.add_argument("--best-val-loss", type=float, default=None, help="Known best val loss from previous run (for checkpoint saving logic)")
     args = parser.parse_args()
 
     train_image_pipeline(
@@ -217,4 +236,7 @@ if __name__ == "__main__":
         learning_rate=args.lr,
         sample_limit=args.sample_limit,
         device_name=args.device,
+        resume=args.resume,
+        start_epoch=args.start_epoch,
+        best_val_loss_init=args.best_val_loss,
     )
