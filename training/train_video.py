@@ -106,6 +106,8 @@ def train_video_pipeline(
     best_val_loss = float("inf")
 
     # 3. Training Loop
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     print(f"\n[Step 3/5] Starting Video Model Training for {epochs} Epochs...")
     for epoch in range(1, epochs + 1):
         model.train()
@@ -254,7 +256,7 @@ def train_video_pipeline(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train AURA Video Deepfake Detector")
     parser.add_argument("--epochs", type=int, default=15, help="Number of epochs (default: 15)")
-    parser.add_argument("--batch-size", type=int, default=16, help="Batch size (default: 16)")
+    parser.add_argument("--batch-size", type=int, default=4, help="Batch size (default: 4)")
     parser.add_argument("--video-count", type=int, default=100, help="Number of real and fake videos to use (default: 100)")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate (default: 0.0001)")
     parser.add_argument("--device", type=str, default=None, help="Device to use ('cuda' or 'cpu')")

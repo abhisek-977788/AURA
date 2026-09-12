@@ -3,3 +3,5 @@ Audio_RawNet2_CNN,0.9231,0.9231,1.0,0.96,0.875
 Image_EfficientNetB0,0.752,0.748,0.76,0.754,0.8422
 Video_EfficientNetB0,1.0,1.0,1.0,1.0,1.0
 Image_EfficientNetB0,0.9995,0.9993,0.9997,0.9995,1.0
+Video_EfficientNetB0,0.975,0.9412,1.0,0.9697,0.9844
+Audio_RawNet2_CNN,0.9615,0.96,1.0,0.9796,1.0
