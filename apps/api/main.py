@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from apps.api.database import init_db
-from apps.api.routers import analysis, cases, evidence, health, jobs, live, media
+from apps.api.routers import analysis, cases, detect, evidence, health, jobs, live, media
 from packages.common.config import get_settings
 from packages.common.logging import configure_logging, get_logger
 
@@ -124,6 +124,7 @@ def create_app() -> FastAPI:
 
     # Register Routers
     app.include_router(health.router)
+    app.include_router(detect.router)
     app.include_router(media.router)
     app.include_router(jobs.router)
     app.include_router(analysis.router)
@@ -133,6 +134,11 @@ def create_app() -> FastAPI:
 
     from pathlib import Path
     from fastapi.responses import HTMLResponse
+    from fastapi.staticfiles import StaticFiles
+
+    results_dir = Path(__file__).resolve().parent.parent.parent / "results"
+    if results_dir.exists():
+        app.mount("/results", StaticFiles(directory=str(results_dir)), name="results")
 
     portal_file = Path(__file__).parent / "static" / "portal.html"
 
